@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0d12">
+<title>Fire TV Remote</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff8a3d'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%230b0d12'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0b0d12; --panel: #151924; --panel-2: #1d2230; --line: #2a3142;
+    --text: #e8ebf2; --muted: #8b93a7; --accent: #ff8a3d; --accent-2: #ffb380;
+    --ok: #3ddc84; --bad: #ff5c5c; --warn: #ffcc4d;
+    --key: #222838; --key-hi: #2c3447; --radius: 18px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  body { padding: 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .wrap { max-width: 440px; margin: 0 auto; display: grid; gap: 14px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  h1 span { color: var(--accent); }
+  .pills { display: flex; gap: 6px; }
+  .pill { font-size: 12px; padding: 4px 9px; border-radius: 999px; background: var(--panel);
+    border: 1px solid var(--line); color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .pill.ok i { background: var(--ok); } .pill.bad i { background: var(--bad); } .pill.warn i { background: var(--warn); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0 10px; }
+  details.card summary { cursor: pointer; list-style: none; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  details.card summary::-webkit-details-marker { display: none; }
+  details.card summary::after { content: "▾"; color: var(--muted); }
+  details.card[open] summary::after { content: "▴"; }
+  details.card[open] summary { margin-bottom: 12px; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  input[type=text], input[type=url], input[type=tel] { flex: 1; min-width: 0; width: 100%; background: var(--bg);
+    color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 15px; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+  button { font: inherit; color: var(--text); background: var(--key); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 14px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  button:active, button.active { background: var(--key-hi); transform: translateY(1px); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #1a0d04; font-weight: 600; }
+  button.primary:active { background: var(--accent-2); }
+  button.ghost { background: transparent; }
+  button:disabled { opacity: .45; cursor: default; transform: none; }
+  .hint { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+  .hint a { color: var(--accent-2); }
+  .devices { display: grid; gap: 6px; margin-top: 8px; }
+  .devices button { text-align: left; display: flex; justify-content: space-between; gap: 8px; }
+  .devices small { color: var(--muted); }
+
+  /* remote body */
+  .remote { display: grid; gap: 14px; }
+  .toprow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .toprow button { padding: 14px 0; font-size: 14px; }
+  .toprow .power { color: var(--bad); }
+  .dpad { position: relative; width: 240px; height: 240px; margin: 4px auto; border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, var(--key-hi), var(--key) 70%); border: 1px solid var(--line);
+    box-shadow: inset 0 2px 12px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35); }
+  .dpad button { position: absolute; width: 78px; height: 78px; background: transparent; border: none; border-radius: 50%;
+    font-size: 24px; color: var(--text); display: grid; place-items: center; }
+  .dpad button:active, .dpad button.active { background: rgba(255,138,61,.18); transform: none; }
+  .dpad .up { top: 2px; left: 81px; } .dpad .down { bottom: 2px; left: 81px; }
+  .dpad .left { left: 2px; top: 81px; } .dpad .right { right: 2px; top: 81px; }
+  .dpad .ok { left: 70px; top: 70px; width: 100px; height: 100px; background: var(--bg); border: 1px solid var(--line);
+    font-size: 15px; font-weight: 600; letter-spacing: 1px; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  .dpad .ok:active, .dpad .ok.active { background: #1a1f2c; }
+  .midrow, .mediarow, .volrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .midrow button, .mediarow button, .volrow button { padding: 14px 0; font-size: 18px; }
+  .midrow button { font-size: 14px; }
+  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .apps button { padding: 12px 4px; font-size: 12.5px; font-weight: 600; border-radius: 12px; }
+  .apps .netflix { background: #3a0d0f; color: #ff8a8a; } .apps .prime { background: #0b2a3f; color: #7fd1ff; }
+  .apps .youtube { background: #3a0d0f; color: #ff9a9a; } .apps .disney { background: #0f1a3e; color: #9fb4ff; }
+  .apps .hulu { background: #0d3a2a; color: #8affc9; } .apps .max { background: #1d0d3a; color: #c9a8ff; }
+  .apps .apple { background: #222; color: #ddd; } .apps .spotify { background: #0d3a1b; color: #8dffb0; }
+  .kbd { display: flex; gap: 8px; }
+  .shortcuts { font-size: 12px; color: var(--muted); }
+  .shortcuts kbd { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; font-size: 11px; }
+  #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px); opacity: 0;
+    background: #222838; color: var(--text); border: 1px solid var(--line); padding: 10px 14px; border-radius: 12px;
+    font-size: 14px; max-width: 92vw; transition: .2s; pointer-events: none; z-index: 9; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.bad { border-color: var(--bad); } #toast.ok { border-color: var(--ok); }
+  .locked { opacity: .5; pointer-events: none; }
+  footer { text-align: center; font-size: 12px; color: var(--muted); }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span>Fire TV</span> Remote</h1>
+    <div class="pills">
+      <span class="pill" id="pillBridge"><i></i>Bridge</span>
+      <span class="pill" id="pillTV"><i></i>TV</span>
+    </div>
+  </header>
+
+  <details class="card" id="setup" open>
+    <summary>Setup</summary>
+
+    <label for="bridgeUrl">Bridge address (the little script running on your computer)</label>
+    <div class="row">
+      <input type="url" id="bridgeUrl" placeholder="http://localhost:8765" autocomplete="off" spellcheck="false">
+      <button id="btnBridgeSave">Connect</button>
+    </div>
+    <p class="hint" id="bridgeHint">
+      Run <code>python3 bridge.py</code> on your Mac first. Don't have it?
+      <a id="bridgeDl" href="bridge.py" download>Download bridge.py</a>.
+    </p>
+
+    <label for="tvIp">Fire TV IP address</label>
+    <div class="row">
+      <input type="text" id="tvIp" placeholder="192.168.1.50" inputmode="decimal" autocomplete="off" spellcheck="false">
+      <button id="btnFind">Find TVs</button>
+      <button id="btnIpSave" class="primary">Save</button>
+    </div>
+    <div class="devices" id="devices"></div>
+
+    <label>Pairing</label>
+    <div class="row" id="pairRow1">
+      <button id="btnPair" class="primary">Pair with TV</button>
+      <button id="btnWake">Wake TV</button>
+      <button id="btnUnpair" class="ghost">Forget</button>
+    </div>
+    <div class="row" id="pairRow2" style="display:none; margin-top:8px">
+      <input type="tel" id="pin" placeholder="4-digit PIN on the TV" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+      <button id="btnVerify" class="primary">Verify</button>
+    </div>
+    <p class="hint">Press <b>Pair</b>, read the 4-digit code off the TV screen, type it here. You only do this once.</p>
+  </details>
+
+  <div class="card remote" id="remote">
+    <div class="toprow">
+      <button class="power" data-key="sleep" title="Sleep">⏻ Sleep</button>
+      <button data-key="home" title="Home">⌂ Home</button>
+      <button data-key="menu" title="Menu">☰ Menu</button>
+    </div>
+
+    <div class="dpad">
+      <button class="up" data-key="dpad_up" aria-label="Up">▲</button>
+      <button class="left" data-key="dpad_left" aria-label="Left">◀</button>
+      <button class="ok" data-key="select" aria-label="Select">SELECT</button>
+      <button class="right" data-key="dpad_right" aria-label="Right">▶</button>
+      <button class="down" data-key="dpad_down" aria-label="Down">▼</button>
+    </div>
+
+    <div class="midrow">
+      <button data-key="back">↩ Back</button>
+      <button data-key="backspace">⌫ Delete</button>
+      <button data-media="play">▶❚❚ Play</button>
+    </div>
+
+    <div class="mediarow">
+      <button data-media="scan" data-dir="back" title="Rewind">◀◀</button>
+      <button data-media="play" title="Play / Pause">▶ ❚❚</button>
+      <button data-media="scan" data-dir="forward" title="Fast forward">▶▶</button>
+    </div>
+
+    <div class="volrow">
+      <button data-key="volume_down" title="Volume down">🔉 −</button>
+      <button data-key="mute" title="Mute">🔇</button>
+      <button data-key="volume_up" title="Volume up">🔊 +</button>
+    </div>
+
+    <div>
+      <h2>Type on the TV</h2>
+      <div class="kbd">
+        <input type="text" id="typeText" placeholder="Search text, Wi‑Fi password, etc." autocomplete="off">
+        <button id="btnType" class="primary">Send</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>Apps</h2>
+      <div class="apps" id="apps">
+        <button class="netflix" data-app="com.netflix.ninja">Netflix</button>
+        <button class="prime"   data-app="com.amazon.cloud9">Prime Video</button>
+        <button class="youtube" data-app="com.amazon.firetv.youtube">YouTube</button>
+        <button class="disney"  data-app="com.disney.disneyplus">Disney+</button>
+        <button class="hulu"    data-app="com.hulu.plus">Hulu</button>
+        <button class="max"     data-app="com.wbd.stream">Max</button>
+        <button class="apple"   data-app="com.apple.atve.amazon.appletv">Apple TV</button>
+        <button class="spotify" data-app="com.spotify.tv.android">Spotify</button>
+      </div>
+      <p class="hint"><a href="#" id="loadApps">Load the apps installed on this TV</a></p>
+    </div>
+
+    <p class="shortcuts">Keyboard: <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> select ·
+      <kbd>Esc</kbd>/<kbd>Backspace</kbd> back · <kbd>H</kbd> home · <kbd>M</kbd> menu · <kbd>Space</kbd> play/pause ·
+      hold an arrow to scroll fast</p>
+  </div>
+
+  <footer>Free and open. <a href="https://github.com/ejq17/firetv-remote">Source on GitHub</a></footer>
+</div>
+<div id="toast"></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const servedByBridge = location.protocol === "http:" && location.hostname !== "" && !location.pathname.endsWith(".html");
+  const DEFAULT_BRIDGE = servedByBridge ? location.origin : "http://localhost:8765";
+  let bridge = (localStorage.getItem("bridgeUrl") || DEFAULT_BRIDGE).replace(/\/+$/, "");
+  let status = { bridge: false, paired: false, ip: "" };
+
+  $("#bridgeUrl").value = bridge;
+  $("#bridgeDl").href = location.hostname.endsWith("github.io")
+    ? "https://raw.githubusercontent.com/ejq17/firetv-remote/main/bridge.py" : bridge + "/bridge.py";
+
+  // ---------- tiny helpers ----------
+  let toastTimer;
+  function toast(msg, kind = "") {
+    const t = $("#toast"); t.textContent = msg; t.className = "show " + kind;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "", kind === "bad" ? 4200 : 1800);
+  }
+  async function api(path, body, method) {
+    const opts = { method: method || (body === undefined ? "GET" : "POST"), headers: {} };
+    if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    let res;
+    try { res = await fetch(bridge + path, opts); }
+    catch (e) { throw new Error("BRIDGE_DOWN"); }
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error(data.error || ("Bridge returned " + res.status));
+    return data;
+  }
+  function explainBridgeDown() {
+    const safari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const mixed = location.protocol === "https:" && bridge.startsWith("http:");
+    if (mixed && safari) return "Safari blocks this page from reaching the bridge. Open " + bridge + " in your browser instead (same remote, works everywhere).";
+    return "Can't reach the bridge at " + bridge + ". Is 'python3 bridge.py' running on your computer?";
+  }
+
+  function paint() {
+    const pb = $("#pillBridge"), pt = $("#pillTV");
+    pb.className = "pill " + (status.bridge ? "ok" : "bad");
+    pb.lastChild.textContent = status.bridge ? "Bridge" : "No bridge";
+    pt.className = "pill " + (!status.bridge ? "" : status.paired ? "ok" : status.ip ? "warn" : "bad");
+    pt.lastChild.textContent = !status.bridge ? "TV" : status.paired ? (status.name || "Paired") : status.ip ? "Not paired" : "No TV";
+    $("#remote").classList.toggle("locked", !(status.bridge && status.paired));
+    if (status.ip && !$("#tvIp").matches(":focus")) $("#tvIp").value = status.ip;
+    if (status.bridge && status.paired) $("#setup").open = false;
+    else $("#setup").open = true;
+  }
+  async function refresh(quiet) {
+    try {
+      const s = await api("/api/status");
+      status = Object.assign({ bridge: true }, s);
+    } catch (e) {
+      status = { bridge: false, paired: false, ip: status.ip };
+      if (!quiet) toast(explainBridgeDown(), "bad");
+    }
+    paint();
+  }
+
+  // ---------- setup actions ----------
+  $("#btnBridgeSave").onclick = async () => {
+    bridge = $("#bridgeUrl").value.trim().replace(/\/+$/, "") || DEFAULT_BRIDGE;
+    $("#bridgeUrl").value = bridge;
+    localStorage.setItem("bridgeUrl", bridge);
+    await refresh(false);
+    if (status.bridge) toast("Connected to bridge", "ok");
+  };
+  $("#btnIpSave").onclick = async () => {
+    try {
+      const s = await api("/api/config", { ip: $("#tvIp").value.trim() });
+      status = Object.assign({ bridge: true }, s); paint();
+      toast("TV address saved. Now pair.", "ok");
+    } catch (e) { toast(e.message === "BRIDGE_DOWN" ? explainBridgeDown() : e.message, "bad"); }
+  };
+  $("#btnFind").onclick = async () => {
+    const box = $("#devices"); box.innerHTML = "<small class='hint'>Searching your Wi‑Fi (about 5 seconds)…</small>";
+    $("#btnFind").disabled = true;
+    try {
+      const r = await api("/api/discover", {});
+      box.innerHTML = "";
+      if (!r.devices.length) { box.innerHTML = "<small class='hint'>Nothing found. Make sure the TV is on, then try again, or type the IP (Fire TV: Settings → My Fire TV → About → Network, or your router's device list).</small>"; return; }
+      for (const d of r.devices) {
+        const b = document.createElement("button");
+        b.innerHTML = `<span>${d.firetv ? "📺 " : ""}${d.name || (d.firetv ? "Fire TV" : "Device")}</span><small>${d.ip}${d.model ? " · " + d.model : ""}</small>`;
+        b.onclick = async () => {
+          $("#tvIp").value = d.ip;
+          const s = await api("/api/config", { ip: d.ip, name: d.name || "" });
+          status = Object.assign({ bridge: true }, s); paint();
+          toast("Using " + d.ip + ". Now press Pair.", "ok");
+        };
+        box.appendChild(b);
+      }
+    } catch (e) { box.innerHTML = ""; toast(e.message === "BRIDGE_DOWN" ? explainBridgeDown() : e.message, "bad"); }
+    finally { $("#btnFind").disabled = false; }
+  };
+  $("#btnWake").onclick = async () => {
+    try { const r = await api("/api/wake", {}); toast(r.ok ? "Wake signal sent" : "TV didn't answer the wake signal", r.ok ? "ok" : "bad"); }
+    catch (e) { toast(e.message === "BRIDGE_DOWN" ? explainBridgeDown() : e.message, "bad"); }
+  };
+  $("#btnPair").onclick = async () => {
+    $("#btnPair").disabled = true;
+    try {
+      if ($("#tvIp").value.trim() && $("#tvIp").value.trim() !== status.ip) await $("#btnIpSave").onclick();
+      await api("/api/pair/start", { friendlyName: "Web Remote" });
+      $("#pairRow2").style.display = "flex"; $("#pin").value = ""; $("#pin").focus();
+      toast("Look at the TV: type the 4-digit PIN it shows (you have about a minute)", "ok");
+    } catch (e) { toast(e.message === "BRIDGE_DOWN" ? explainBridgeDown() : e.message, "bad"); }
+    finally { $("#btnPair").disabled = false; }
+  };
+  $("#btnVerify").onclick = async () => {
+    try {
+      await api("/api/pair/verify", { pin: $("#pin").value });
+      $("#pairRow2").style.display = "none";
+      await refresh(true);
+      toast("Paired! You're in control.", "ok");
+    } catch (e) { toast(e.message === "BRIDGE_DOWN" ? explainBridgeDown() : e.message, "bad"); }
+  };
+  $("#pin").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#btnVerify").onclick(); });
+  $("#btnUnpair").onclick = async () => {
+    try { await api("/api/unpair", {}); await refresh(true); toast("Pairing forgotten"); }
+    catch (e) { toast(e.message, "bad"); }
+  };
+
+  // ---------- remote actions ----------
+  const busy = new Set();
+  async function send(path, body, label) {
+    try { await api(path, body); }
+    catch (e) {
+      toast(e.message === "BRIDGE_DOWN" ? explainBridgeDown() : e.message, "bad");
+      if (e.message === "BRIDGE_DOWN" || /pair/i.test(e.message)) refresh(true);
+    }
+  }
+  const key = (k, action = "tap") => send("/api/key", { key: k, action });
+
+  // press-and-hold on the d-pad: tap on short press, keyDown/keyUp on a long press
+  document.querySelectorAll("[data-key]").forEach((btn) => {
+    const k = btn.dataset.key, holdable = k.startsWith("dpad_") || k.startsWith("volume_");
+    let timer = null, holding = false;
+    const start = (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault(); btn.classList.add("active"); holding = false;
+      if (holdable) timer = setTimeout(() => { holding = true; key(k, "down"); }, 380);
+    };
+    const end = (e) => {
+      if (!btn.classList.contains("active")) return;
+      btn.classList.remove("active"); clearTimeout(timer);
+      if (holding) key(k, "up"); else key(k, "tap");
+    };
+    const cancel = () => { if (!btn.classList.contains("active")) return; btn.classList.remove("active"); clearTimeout(timer); if (holding) key(k, "up"); };
+    btn.addEventListener("pointerdown", start);
+    btn.addEventListener("pointerup", end);
+    btn.addEventListener("pointercancel", cancel);
+    btn.addEventListener("pointerleave", cancel);
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+  });
+  document.querySelectorAll("[data-media]").forEach((btn) => {
+    btn.onclick = () => send("/api/media", { action: btn.dataset.media, direction: btn.dataset.dir });
+  });
+  function bindApps() {
+    document.querySelectorAll("[data-app]").forEach((btn) => {
+      btn.onclick = () => { send("/api/app", { package: btn.dataset.app }); toast("Opening " + btn.textContent.trim()); };
+    });
+  }
+  bindApps();
+  $("#loadApps").onclick = async (e) => {
+    e.preventDefault();
+    try {
+      const r = await api("/api/apps");
+      const raw = r.apps; const list = Array.isArray(raw) ? raw : (raw.apps || raw.applications || raw.description || []);
+      if (!Array.isArray(list) || !list.length) { toast("The TV didn't return an app list", "bad"); return; }
+      const grid = $("#apps");
+      for (const a of list) {
+        const pkg = a.packageName || a.package || a.appId || a.id; const name = a.displayName || a.name || a.label || pkg;
+        if (!pkg || grid.querySelector(`[data-app="${pkg}"]`)) continue;
+        const b = document.createElement("button"); b.dataset.app = pkg; b.textContent = name; grid.appendChild(b);
+      }
+      bindApps(); toast("Loaded " + list.length + " apps", "ok");
+    } catch (err) { toast(err.message === "BRIDGE_DOWN" ? explainBridgeDown() : err.message, "bad"); }
+  };
+  $("#btnType").onclick = async () => {
+    const t = $("#typeText").value; if (!t) return;
+    await send("/api/text", { text: t }); $("#typeText").value = ""; toast("Sent", "ok");
+  };
+  $("#typeText").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#btnType").onclick(); });
+
+  // keyboard shortcuts (when not typing in a field)
+  const map = { ArrowUp: "dpad_up", ArrowDown: "dpad_down", ArrowLeft: "dpad_left", ArrowRight: "dpad_right",
+    Enter: "select", Escape: "back", Backspace: "back", h: "home", H: "home", m: "menu", M: "menu" };
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches("input, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === " ") { e.preventDefault(); send("/api/media", { action: "play" }); return; }
+    const k = map[e.key]; if (!k) return;
+    e.preventDefault(); if (e.repeat) return; key(k);
+  });
+
+  refresh(true);
+  setInterval(() => refresh(true), 15000);
+})();
+</script>
+</body>
+</html>
